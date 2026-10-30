@@ -1,11 +1,16 @@
 import { Link } from 'react-router-dom'
+import BackgroundVideo from '../components/BackgroundVideo'
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-cover bg-center bg-no-repeat" style={{ backgroundImage: "url('/livestock_manager_img/home.jpeg')" }}>
-      <div className="bg-background/80 backdrop-blur-sm min-h-screen">
+    <div className="video-background min-h-screen">
+      <BackgroundVideo
+        src="https://videos.pexels.com/video-files/25749458/11905822_1920_1080_30fps.mp4"
+        poster="/livestock_manager_img/home.jpeg"
+      />
+      <div className="video-background-content bg-background/80 backdrop-blur-sm min-h-screen">
         {/* Hero Section */}
-        <section className="bg-gradient-to-r from-primary to-secondary py-20">
+        <section className="home-hero bg-gradient-to-r from-primary to-secondary py-20">
           <div className="container mx-auto px-4 text-center">
             <h1 className="text-4xl md:text-6xl font-bold mb-6">Livestock Manager</h1>
             <p className="text-xl mb-8 max-w-2xl mx-auto">

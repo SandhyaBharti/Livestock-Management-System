@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import BackgroundVideo from './BackgroundVideo'
 import { 
   UsersIcon, 
   Circle as PawIcon, 
@@ -290,8 +291,12 @@ export default function DashboardHome() {
   }
 
   return (
-    <div className="bg-cover bg-center bg-no-repeat min-h-screen" style={{ backgroundImage: "url('/livestock_manager_img/dashboard.jpeg')" }}>
-      <div className="bg-background/80 backdrop-blur-sm p-6 min-h-screen">
+    <div className="video-background min-h-screen">
+      <BackgroundVideo
+        src="https://videos.pexels.com/video-files/25749458/11905822_1920_1080_30fps.mp4"
+        poster="/livestock_manager_img/dashboard.jpeg"
+      />
+      <div className="video-background-content bg-background/80 backdrop-blur-sm p-6 min-h-screen">
         <h1 className="text-2xl font-bold mb-6">Dashboard</h1>
         
         {/* Stats Cards */}

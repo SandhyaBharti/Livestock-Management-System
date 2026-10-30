@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { PlusIcon, PencilIcon, TrashIcon } from 'lucide-react'
+import { PlusIcon, PencilIcon, TrashIcon, UserRound } from 'lucide-react'
 import { getCurrentUser, isAdmin, getUserId } from '../utils/auth'
 
 const STORAGE_KEY = 'livestock_owners'
@@ -156,9 +156,18 @@ export default function OwnerDetails() {
   }
 
   return (
-    <div>
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Owner Details</h1>
+    <div className="owner-details-background min-h-screen">
+      <div className="video-background-content owner-details-content min-h-screen">
+      <div className="owner-details-header flex justify-between items-center mb-6">
+        <div className="owner-details-title">
+          <div className="owner-details-profile-icon" aria-hidden="true">
+            <UserRound className="h-6 w-6" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold">Farm Owner Profile</h1>
+            <p className="text-sm text-muted-foreground">Manage owner identity and contact information</p>
+          </div>
+        </div>
         <button
           onClick={handleAddOwner}
           className="flex items-center bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-md font-medium transition-colors"
@@ -169,7 +178,7 @@ export default function OwnerDetails() {
       </div>
 
       {/* Owners Table */}
-      <div className="bg-card rounded-lg border border-border shadow-sm overflow-hidden">
+      <div className="bg-card owner-details-table rounded-lg border border-border shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-border">
             <thead className="bg-muted">
@@ -225,11 +234,11 @@ export default function OwnerDetails() {
 
       {/* Modal for Add/Edit Owner */}
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-card rounded-lg border border-border shadow-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 owner-details-modal">
+          <div className="bg-card rounded-lg border border-border shadow-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto owner-details-dialog">
             <div className="p-6">
               <h2 className="text-xl font-bold mb-4">
-                {isEditing ? 'Edit Owner' : 'Add New Owner'}
+                {isEditing ? 'Edit Owner Information' : 'Owner Information'}
               </h2>
               
               <form onSubmit={handleSubmit}>
@@ -361,6 +370,7 @@ export default function OwnerDetails() {
           </div>
         </div>
       )}
+      </div>
     </div>
   )
 }
