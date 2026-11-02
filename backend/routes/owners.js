@@ -7,19 +7,19 @@ const {
   deleteOwner,
   validateOwner
 } = require('../controllers/ownerController');
-const { protect, authorize } = require('../middleware/auth');
+const { protect } = require('../middleware/auth');
 
 const router = express.Router();
 
 router
   .route('/')
   .get(protect, getOwners)
-  .post(protect, authorize('admin'), validateOwner, createOwner);
+  .post(protect, validateOwner, createOwner);
 
 router
   .route('/:id')
   .get(protect, getOwner)
-  .put(protect, authorize('admin'), validateOwner, updateOwner)
-  .delete(protect, authorize('admin'), deleteOwner);
+  .put(protect, validateOwner, updateOwner)
+  .delete(protect, deleteOwner);
 
 module.exports = router;

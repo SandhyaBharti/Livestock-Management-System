@@ -3,6 +3,7 @@ const dotenv = require('dotenv');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
+const connectDB = require('./config/db');
 
 // Load env vars
 dotenv.config();
@@ -28,12 +29,37 @@ app.get('/', (req, res) => {
 
 // Error handler
 app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ message: 'Something went wrong!' });
+  let statusCode = err.statusCode || 500;
+  let message = err.message || 'Internal server error';
+
+  if (err.code === 11000) {
+    statusCode = 400;
+    const field = Object.keys(err.keyValue || {})[0] || 'value';
+    message = `A record with this ${field} already exists`;
+  } else if (err.name === 'ValidationError') {
+    statusCode = 400;
+    message = Object.values(err.errors).map((error) => error.message).join(', ');
+  } else if (err.name === 'CastError') {
+    statusCode = 400;
+    message = `Invalid ${err.path}`;
+  }
+
+  if (res.headersSent) {
+    return next(err);
+  }
+  res.status(statusCode).json({ success: false, message });
 });
 
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+const startServer = async () => {
+  await connectDB();
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
+};
+
+startServer().catch((error) => {
+  console.error(`Server startup failed: ${error.message}`);
+  process.exit(1);
 });

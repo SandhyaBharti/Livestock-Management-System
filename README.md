@@ -59,14 +59,26 @@ cd ../frontend
 npm install
 ```
 
-4. Create a `.env` file in the backend directory with the following variables:
+4. Create a `.env` file in the backend directory from the example:
+```bash
+cd ../backend
+cp .env.example .env
+```
+The file should contain:
 ```env
-NODE_ENV=development
 PORT=5000
-MONGO_URI=your_mongodb_connection_string
-JWT_SECRET=your_jwt_secret
+MONGO_URI=mongodb://127.0.0.1:27017/livestock
+JWT_SECRET=replace-this-with-a-long-random-secret
 JWT_EXPIRE=30d
 ```
+The same values are provided in `backend/.env.example`. Start MongoDB before launching the API.
+
+5. Seed the database with an administrator and demo livestock records:
+```bash
+npm run seed
+```
+Demo administrator login: `admin@livestock.com` / `Admin@123`.
+New registrations are regular users; each user can manage only their own records, while administrators can manage all records.
 
 ## Running the Application
 
@@ -147,6 +159,7 @@ livestock_manager/
 
 ### Animals
 - `GET /api/v1/animals` - Get all animals
+- `GET /api/v1/animals/stats/species` - Count animals by species
 - `GET /api/v1/animals/:id` - Get single animal
 - `POST /api/v1/animals` - Create new animal
 - `PUT /api/v1/animals/:id` - Update animal
@@ -154,6 +167,7 @@ livestock_manager/
 
 ### Vaccinations
 - `GET /api/v1/vaccinations` - Get all vaccinations
+- `GET /api/v1/vaccinations/due?days=30` - Find overdue vaccinations and those due within the next 30 days
 - `GET /api/v1/vaccinations/:id` - Get single vaccination
 - `POST /api/v1/vaccinations` - Create new vaccination
 - `PUT /api/v1/vaccinations/:id` - Update vaccination

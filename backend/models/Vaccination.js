@@ -24,10 +24,18 @@ const vaccinationSchema = new mongoose.Schema({
     type: String,
     maxlength: [500, 'Notes cannot be more than 500 characters']
   },
+  user: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
   createdAt: {
     type: Date,
     default: Date.now
   }
 });
+
+vaccinationSchema.index({ nextDueDate: 1 });
+vaccinationSchema.index({ user: 1, nextDueDate: 1 });
 
 module.exports = mongoose.model('Vaccination', vaccinationSchema);

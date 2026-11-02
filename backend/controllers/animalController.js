@@ -1,19 +1,13 @@
 const ErrorResponse = require('../utils/errorResponse');
 const asyncHandler = require('../utils/asyncHandler');
 const { body, validationResult } = require('express-validator');
-const { 
-  findAllAnimals, 
-  findAnimalById, 
-  createAnimal, 
-  updateAnimal, 
-  deleteAnimal 
-} = require('../utils/mockDB');
+const Animal = require('../models/Animal');
+const Owner = require('../models/Owner');
 
-// @desc    Get all animals
-// @route   GET /api/v1/animals
-// @access  Private
-exports.getAnimals = asyncHandler(async (req, res, next) => {
-  const animals = findAllAnimals();
+const ownershipFilter = (user) => user.role === 'admin' ? {} : { user: user.id };
+
+exports.getAnimals = asyncHandler(async (req, res) => {
+  const animals = await Animal.find(ownershipFilter(req.user)).populate('owner');
 
   res.status(200).json({
     success: true,
@@ -22,87 +16,101 @@ exports.getAnimals = asyncHandler(async (req, res, next) => {
   });
 });
 
-// @desc    Get single animal
-// @route   GET /api/v1/animals/:id
-// @access  Private
 exports.getAnimal = asyncHandler(async (req, res, next) => {
-  const animal = findAnimalById(parseInt(req.params.id));
+  const animal = await Animal.findOne({
+    _id: req.params.id,
+    ...ownershipFilter(req.user)
+  }).populate('owner');
 
   if (!animal) {
-    return next(
-      new ErrorResponse(`Animal not found with id of ${req.params.id}`, 404)
-    );
+    return next(new ErrorResponse(`Animal not found with id of ${req.params.id}`, 404));
   }
 
-  res.status(200).json({
-    success: true,
-    data: animal
-  });
+  res.status(200).json({ success: true, data: animal });
 });
 
-// @desc    Create new animal
-// @route   POST /api/v1/animals
-// @access  Private
 exports.createAnimal = asyncHandler(async (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({ errors: errors.array() });
   }
 
-  const animal = createAnimal(req.body);
-
-  res.status(201).json({
-    success: true,
-    data: animal
+  const owner = await Owner.exists({
+    _id: req.body.owner,
+    ...ownershipFilter(req.user)
   });
+  if (!owner) {
+    return next(new ErrorResponse('Owner not found or not accessible', 404));
+  }
+
+  const animal = await Animal.create({ ...req.body, user: req.user.id });
+  await animal.populate('owner');
+  res.status(201).json({ success: true, data: animal });
 });
 
-// @desc    Update animal
-// @route   PUT /api/v1/animals/:id
-// @access  Private
 exports.updateAnimal = asyncHandler(async (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({ errors: errors.array() });
   }
 
-  let animal = findAnimalById(parseInt(req.params.id));
-
-  if (!animal) {
-    return next(
-      new ErrorResponse(`Animal not found with id of ${req.params.id}`, 404)
-    );
+  const updates = { ...req.body };
+  delete updates.user;
+  if (updates.owner) {
+    const owner = await Owner.exists({
+      _id: updates.owner,
+      ...ownershipFilter(req.user)
+    });
+    if (!owner) {
+      return next(new ErrorResponse('Owner not found or not accessible', 404));
+    }
   }
 
-  animal = updateAnimal(parseInt(req.params.id), req.body);
-
-  res.status(200).json({
-    success: true,
-    data: animal
+  const existingAnimal = await Animal.findOne({
+    _id: req.params.id,
+    ...ownershipFilter(req.user)
   });
+  if (!existingAnimal) {
+    return next(new ErrorResponse(`Animal not found with id of ${req.params.id}`, 404));
+  }
+
+  const animal = await Animal.findByIdAndUpdate(
+    req.params.id,
+    updates,
+    { new: true, runValidators: true }
+  ).populate('owner');
+
+  if (!animal) {
+    return next(new ErrorResponse(`Animal not found with id of ${req.params.id}`, 404));
+  }
+
+  res.status(200).json({ success: true, data: animal });
 });
 
-// @desc    Delete animal
-// @route   DELETE /api/v1/animals/:id
-// @access  Private
 exports.deleteAnimal = asyncHandler(async (req, res, next) => {
-  const animal = findAnimalById(parseInt(req.params.id));
+  const animal = await Animal.findOneAndDelete({
+    _id: req.params.id,
+    ...ownershipFilter(req.user)
+  });
 
   if (!animal) {
-    return next(
-      new ErrorResponse(`Animal not found with id of ${req.params.id}`, 404)
-    );
+    return next(new ErrorResponse(`Animal not found with id of ${req.params.id}`, 404));
   }
 
-  deleteAnimal(parseInt(req.params.id));
-
-  res.status(200).json({
-    success: true,
-    data: {}
-  });
+  res.status(200).json({ success: true, data: {} });
 });
 
-// Validation rules for creating/updating animal
+exports.getSpeciesStats = asyncHandler(async (req, res) => {
+  const match = req.user.role === 'admin' ? [] : [{ $match: { user: req.user._id } }];
+  const stats = await Animal.aggregate([
+    ...match,
+    { $group: { _id: '$species', count: { $sum: 1 } } },
+    { $sort: { count: -1, _id: 1 } }
+  ]);
+
+  res.status(200).json({ success: true, count: stats.length, data: stats });
+});
+
 exports.validateAnimal = [
   body('tagId').notEmpty().withMessage('Tag ID is required'),
   body('species').notEmpty().withMessage('Species is required'),

@@ -5,21 +5,24 @@ const {
   createVaccination,
   updateVaccination,
   deleteVaccination,
-  validateVaccination
+  validateVaccination,
+  getDueVaccinations
 } = require('../controllers/vaccinationController');
-const { protect, authorize } = require('../middleware/auth');
+const { protect } = require('../middleware/auth');
 
 const router = express.Router();
 
 router
   .route('/')
   .get(protect, getVaccinations)
-  .post(protect, authorize('admin'), validateVaccination, createVaccination);
+  .post(protect, validateVaccination, createVaccination);
+
+router.get('/due', protect, getDueVaccinations);
 
 router
   .route('/:id')
   .get(protect, getVaccination)
-  .put(protect, authorize('admin'), validateVaccination, updateVaccination)
-  .delete(protect, authorize('admin'), deleteVaccination);
+  .put(protect, validateVaccination, updateVaccination)
+  .delete(protect, deleteVaccination);
 
 module.exports = router;

@@ -1,19 +1,13 @@
 const ErrorResponse = require('../utils/errorResponse');
 const asyncHandler = require('../utils/asyncHandler');
 const { body, validationResult } = require('express-validator');
-const { 
-  findAllOwners, 
-  findOwnerById, 
-  createOwner, 
-  updateOwner, 
-  deleteOwner 
-} = require('../utils/mockDB');
+const Owner = require('../models/Owner');
+const Animal = require('../models/Animal');
 
-// @desc    Get all owners
-// @route   GET /api/v1/owners
-// @access  Private
-exports.getOwners = asyncHandler(async (req, res, next) => {
-  const owners = findAllOwners();
+const ownershipFilter = (user) => user.role === 'admin' ? {} : { user: user.id };
+
+exports.getOwners = asyncHandler(async (req, res) => {
+  const owners = await Owner.find(ownershipFilter(req.user));
 
   res.status(200).json({
     success: true,
@@ -22,87 +16,76 @@ exports.getOwners = asyncHandler(async (req, res, next) => {
   });
 });
 
-// @desc    Get single owner
-// @route   GET /api/v1/owners/:id
-// @access  Private
 exports.getOwner = asyncHandler(async (req, res, next) => {
-  const owner = findOwnerById(parseInt(req.params.id));
+  const owner = await Owner.findOne({
+    _id: req.params.id,
+    ...ownershipFilter(req.user)
+  });
 
   if (!owner) {
-    return next(
-      new ErrorResponse(`Owner not found with id of ${req.params.id}`, 404)
-    );
+    return next(new ErrorResponse(`Owner not found with id of ${req.params.id}`, 404));
   }
 
-  res.status(200).json({
-    success: true,
-    data: owner
-  });
+  res.status(200).json({ success: true, data: owner });
 });
 
-// @desc    Create new owner
-// @route   POST /api/v1/owners
-// @access  Private
-exports.createOwner = asyncHandler(async (req, res, next) => {
+exports.createOwner = asyncHandler(async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({ errors: errors.array() });
   }
 
-  const owner = createOwner(req.body);
-
-  res.status(201).json({
-    success: true,
-    data: owner
-  });
+  const owner = await Owner.create({ ...req.body, user: req.user.id });
+  res.status(201).json({ success: true, data: owner });
 });
 
-// @desc    Update owner
-// @route   PUT /api/v1/owners/:id
-// @access  Private
 exports.updateOwner = asyncHandler(async (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({ errors: errors.array() });
   }
 
-  let owner = findOwnerById(parseInt(req.params.id));
-
-  if (!owner) {
-    return next(
-      new ErrorResponse(`Owner not found with id of ${req.params.id}`, 404)
-    );
+  const updates = { ...req.body };
+  delete updates.user;
+  const existingOwner = await Owner.findOne({
+    _id: req.params.id,
+    ...ownershipFilter(req.user)
+  });
+  if (!existingOwner) {
+    return next(new ErrorResponse(`Owner not found with id of ${req.params.id}`, 404));
   }
 
-  owner = updateOwner(parseInt(req.params.id), req.body);
+  const owner = await Owner.findByIdAndUpdate(
+    req.params.id,
+    updates,
+    { new: true, runValidators: true }
+  );
 
-  res.status(200).json({
-    success: true,
-    data: owner
-  });
+  if (!owner) {
+    return next(new ErrorResponse(`Owner not found with id of ${req.params.id}`, 404));
+  }
+
+  res.status(200).json({ success: true, data: owner });
 });
 
-// @desc    Delete owner
-// @route   DELETE /api/v1/owners/:id
-// @access  Private
 exports.deleteOwner = asyncHandler(async (req, res, next) => {
-  const owner = findOwnerById(parseInt(req.params.id));
+  const owner = await Owner.findOne({
+    _id: req.params.id,
+    ...ownershipFilter(req.user)
+  });
 
   if (!owner) {
-    return next(
-      new ErrorResponse(`Owner not found with id of ${req.params.id}`, 404)
-    );
+    return next(new ErrorResponse(`Owner not found with id of ${req.params.id}`, 404));
   }
 
-  deleteOwner(parseInt(req.params.id));
+  if (await Animal.exists({ owner: owner._id })) {
+    return next(new ErrorResponse('Cannot delete an owner while animals still reference them', 400));
+  }
 
-  res.status(200).json({
-    success: true,
-    data: {}
-  });
+  await owner.deleteOne();
+  res.status(200).json({ success: true, data: {} });
 });
 
-// Validation rules for creating/updating owner
 exports.validateOwner = [
   body('firstName').notEmpty().withMessage('First name is required'),
   body('lastName').notEmpty().withMessage('Last name is required'),

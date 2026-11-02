@@ -5,21 +5,24 @@ const {
   createAnimal,
   updateAnimal,
   deleteAnimal,
-  validateAnimal
+  validateAnimal,
+  getSpeciesStats
 } = require('../controllers/animalController');
-const { protect, authorize } = require('../middleware/auth');
+const { protect } = require('../middleware/auth');
 
 const router = express.Router();
 
 router
   .route('/')
   .get(protect, getAnimals)
-  .post(protect, authorize('admin'), validateAnimal, createAnimal);
+  .post(protect, validateAnimal, createAnimal);
+
+router.get('/stats/species', protect, getSpeciesStats);
 
 router
   .route('/:id')
   .get(protect, getAnimal)
-  .put(protect, authorize('admin'), validateAnimal, updateAnimal)
-  .delete(protect, authorize('admin'), deleteAnimal);
+  .put(protect, validateAnimal, updateAnimal)
+  .delete(protect, deleteAnimal);
 
 module.exports = router;

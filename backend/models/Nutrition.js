@@ -33,6 +33,11 @@ const nutritionSchema = new mongoose.Schema({
     type: String,
     maxlength: [500, 'Notes cannot be more than 500 characters']
   },
+  user: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
   createdAt: {
     type: Date,
     default: Date.now

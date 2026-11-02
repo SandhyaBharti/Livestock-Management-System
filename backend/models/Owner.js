@@ -51,6 +51,12 @@ const ownerSchema = new mongoose.Schema({
       required: [true, 'Please add a country']
     }
   },
+  user: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true,
+    index: true
+  },
   createdAt: {
     type: Date,
     default: Date.now

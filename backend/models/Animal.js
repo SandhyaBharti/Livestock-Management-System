@@ -28,6 +28,12 @@ const animalSchema = new mongoose.Schema({
   owner: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Owner',
+    required: true,
+    index: true
+  },
+  user: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
     required: true
   },
   createdAt: {
@@ -35,5 +41,7 @@ const animalSchema = new mongoose.Schema({
     default: Date.now
   }
 });
+
+animalSchema.index({ user: 1, species: 1 });
 
 module.exports = mongoose.model('Animal', animalSchema);
