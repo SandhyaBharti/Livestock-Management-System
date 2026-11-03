@@ -1,10 +1,47 @@
 import { useState } from 'react'
-import { MoonIcon, SunIcon, MenuIcon, SearchIcon, XIcon } from 'lucide-react'
+import { MoonIcon, SunIcon, MenuIcon, SearchIcon, XIcon, UserRound } from 'lucide-react'
+import { apiRequest } from '../utils/api'
+import { getCurrentUser, saveCurrentUser } from '../utils/auth'
 
 export default function TopNavbar({ sidebarOpen, setSidebarOpen, toggleTheme, theme }) {
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState([])
   const [showSearchResults, setShowSearchResults] = useState(false)
+  const [user, setUser] = useState(getCurrentUser)
+  const [showProfileMenu, setShowProfileMenu] = useState(false)
+  const [showProfileEditor, setShowProfileEditor] = useState(false)
+  const [profileForm, setProfileForm] = useState({
+    name: user?.name || '',
+    email: user?.email || ''
+  })
+  const [profileError, setProfileError] = useState('')
+  const [savingProfile, setSavingProfile] = useState(false)
+
+  const openProfileEditor = () => {
+    setProfileForm({ name: user?.name || '', email: user?.email || '' })
+    setProfileError('')
+    setShowProfileMenu(false)
+    setShowProfileEditor(true)
+  }
+
+  const handleProfileSubmit = async (event) => {
+    event.preventDefault()
+    setSavingProfile(true)
+    setProfileError('')
+    try {
+      const { data } = await apiRequest('/auth/me', {
+        method: 'PUT',
+        body: profileForm
+      })
+      saveCurrentUser(data)
+      setUser(data)
+      setShowProfileEditor(false)
+    } catch (requestError) {
+      setProfileError(requestError.message)
+    } finally {
+      setSavingProfile(false)
+    }
+  }
 
   // Mock search function - in a real app, this would call your API
   const handleSearch = (e) => {
@@ -108,10 +145,25 @@ export default function TopNavbar({ sidebarOpen, setSidebarOpen, toggleTheme, th
             )}
           </button>
           
-          <div className="navbar-avatar ml-4 relative" aria-label="Current user">
-            <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center">
-              <span className="text-primary-foreground font-medium">U</span>
-            </div>
+          <div className="navbar-avatar ml-4 relative">
+            <button
+              type="button"
+              className="navbar-profile-button"
+              aria-label="Open user profile"
+              aria-expanded={showProfileMenu}
+              onClick={() => setShowProfileMenu((visible) => !visible)}
+            >
+              <span className="navbar-profile-initial">{user?.name?.trim()?.[0]?.toUpperCase() || <UserRound className="h-4 w-4" />}</span>
+              <span className="navbar-profile-name">{user?.name || 'Profile'}</span>
+            </button>
+            {showProfileMenu && (
+              <div className="navbar-profile-menu">
+                <p className="navbar-profile-menu-name">{user?.name || 'User'}</p>
+                <p className="navbar-profile-menu-email">{user?.email}</p>
+                <p className="navbar-profile-menu-role">{user?.role === 'admin' ? 'Administrator' : 'Farm user'}</p>
+                <button type="button" onClick={openProfileEditor}>Edit profile</button>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -164,6 +216,47 @@ export default function TopNavbar({ sidebarOpen, setSidebarOpen, toggleTheme, th
           )}
         </form>
       </div>
+
+      {showProfileEditor && (
+        <div className="profile-modal-backdrop" onClick={() => setShowProfileEditor(false)}>
+          <form
+            className="profile-modal"
+            onSubmit={handleProfileSubmit}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="profile-modal-heading">
+              <div className="owner-details-profile-icon" aria-hidden="true"><UserRound className="h-6 w-6" /></div>
+              <div>
+                <h2 className="text-xl font-bold">Your profile</h2>
+                <p className="text-sm text-muted-foreground">Update the name and email saved to your account</p>
+              </div>
+            </div>
+            {profileError && <p role="alert" className="profile-error">{profileError}</p>}
+            <label htmlFor="profile-name">Full name</label>
+            <input
+              id="profile-name"
+              name="name"
+              value={profileForm.name}
+              onChange={(event) => setProfileForm((current) => ({ ...current, name: event.target.value }))}
+              required
+              maxLength="50"
+            />
+            <label htmlFor="profile-email">Email address</label>
+            <input
+              id="profile-email"
+              name="email"
+              type="email"
+              value={profileForm.email}
+              onChange={(event) => setProfileForm((current) => ({ ...current, email: event.target.value }))}
+              required
+            />
+            <div className="profile-modal-actions">
+              <button type="button" onClick={() => setShowProfileEditor(false)}>Cancel</button>
+              <button type="submit" disabled={savingProfile}>{savingProfile ? 'Saving...' : 'Save profile'}</button>
+            </div>
+          </form>
+        </div>
+      )}
     </header>
   )
 }

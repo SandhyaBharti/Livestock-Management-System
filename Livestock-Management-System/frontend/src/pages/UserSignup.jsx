@@ -1,25 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-
-const USERS_STORAGE_KEY = 'livestock_users'
-
-const getUsers = () => {
-  const saved = localStorage.getItem(USERS_STORAGE_KEY)
-  if (saved) {
-    try {
-      return JSON.parse(saved)
-    } catch (e) {
-      console.error('Error parsing users from localStorage:', e)
-    }
-  }
-  return []
-}
-
-const saveUser = (user) => {
-  const users = getUsers()
-  users.push(user)
-  localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users))
-}
+import { apiRequest, saveAuth } from '../utils/api'
 
 export default function UserSignup() {
   const [formData, setFormData] = useState({
@@ -40,7 +21,7 @@ export default function UserSignup() {
     setError('')
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
 
@@ -55,29 +36,20 @@ export default function UserSignup() {
       return
     }
 
-    // Check if user already exists
-    const users = getUsers()
-    const existingUser = users.find(user => user.email === formData.email)
-    
-    if (existingUser) {
-      setError('Email already exists. Please login instead.')
-      return
+    try {
+      const { token, data } = await apiRequest('/auth/register', {
+        method: 'POST',
+        body: {
+          name: formData.name,
+          email: formData.email,
+          password: formData.password
+        }
+      })
+      saveAuth(token, data)
+      navigate('/dashboard')
+    } catch (requestError) {
+      setError(requestError.message)
     }
-
-    // Save new user
-    const newUser = {
-      id: Date.now(),
-      name: formData.name,
-      email: formData.email,
-      password: formData.password, // In production, this should be hashed
-      createdAt: new Date().toISOString()
-    }
-
-    saveUser(newUser)
-    
-    // Auto login after signup
-    localStorage.setItem('livestock_current_user', JSON.stringify(newUser))
-    navigate('/dashboard')
   }
 
   return (
@@ -169,5 +141,4 @@ export default function UserSignup() {
     </div>
   )
 }
-
 

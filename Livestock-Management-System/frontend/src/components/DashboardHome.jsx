@@ -9,65 +9,7 @@ import {
   TrendingUpIcon
 } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
-import { isAdmin, getUserId } from '../utils/auth'
-
-// Helper functions to get data
-const getAllOwners = () => {
-  const saved = localStorage.getItem('livestock_owners')
-  if (saved) {
-    try {
-      return JSON.parse(saved)
-    } catch (e) {
-      return []
-    }
-  }
-  return []
-}
-
-const getAllAnimals = () => {
-  const saved = localStorage.getItem('livestock_animals')
-  if (saved) {
-    try {
-      return JSON.parse(saved)
-    } catch (e) {
-      return []
-    }
-  }
-  return []
-}
-
-const getAllVaccinations = () => {
-  const saved = localStorage.getItem('livestock_vaccinations')
-  if (saved) {
-    try {
-      return JSON.parse(saved)
-    } catch (e) {
-      return []
-    }
-  }
-  return []
-}
-
-const getAllFeedingRecords = () => {
-  const saved = localStorage.getItem('livestock_feeding')
-  if (saved) {
-    try {
-      return JSON.parse(saved)
-    } catch (e) {
-      return []
-    }
-  }
-  return []
-}
-
-// Filter data based on user role
-const getFilteredData = (allData) => {
-  if (isAdmin()) {
-    return allData
-  }
-  const userId = getUserId()
-  return allData.filter(item => item.userId === userId)
-}
+import { apiRequest } from '../utils/api'
 
 // Calculate percentage change
 const calculateChange = (current, previous) => {
@@ -99,26 +41,26 @@ export default function DashboardHome() {
   const [vaccinationData, setVaccinationData] = useState([])
   const [animalData, setAnimalData] = useState([])
   const [recentActivity, setRecentActivity] = useState([])
+  const [error, setError] = useState('')
 
-  const calculateStats = () => {
-    // Get all data
-    const allOwners = getAllOwners()
-    const allAnimals = getAllAnimals()
-    const allVaccinations = getAllVaccinations()
-    const allFeedingRecords = getAllFeedingRecords()
-
-    // Filter based on user role
-    const owners = getFilteredData(allOwners)
-    const animals = getFilteredData(allAnimals)
-    const vaccinations = getFilteredData(allVaccinations)
-    const feedingRecords = getFilteredData(allFeedingRecords)
+  const calculateStats = async () => {
+    const [ownersResult, animalsResult, vaccinationsResult, feedingResult] = await Promise.all([
+      apiRequest('/owners'),
+      apiRequest('/animals'),
+      apiRequest('/vaccinations'),
+      apiRequest('/nutrition')
+    ])
+    const owners = ownersResult.data
+    const animals = animalsResult.data
+    const vaccinations = vaccinationsResult.data
+    const feedingRecords = feedingResult.data
 
     // Calculate current counts
     const totalOwners = owners.length
     const totalAnimals = animals.length
     const totalFeedingSchedules = feedingRecords.length
 
-    // Calculate vaccinations due (nextDueDate is in the past or within next 30 days)
+    // Include overdue vaccinations and those due within the next 30 days.
     const today = new Date()
     const nextMonth = new Date(today)
     nextMonth.setMonth(nextMonth.getMonth() + 1)
@@ -126,7 +68,7 @@ export default function DashboardHome() {
     const vaccinationsDue = vaccinations.filter(vacc => {
       if (!vacc.nextDueDate) return false
       const dueDate = new Date(vacc.nextDueDate)
-      return dueDate <= nextMonth && dueDate >= today
+      return dueDate <= nextMonth
     }).length
 
     // Calculate percentage changes (comparing last 30 days vs previous 30 days)
@@ -207,7 +149,7 @@ export default function DashboardHome() {
       .forEach(vacc => {
         activities.push({
           type: 'vaccination',
-          message: `Vaccination completed for ${vacc.animal}`,
+          message: `Vaccination completed for ${vacc.animal?.tagId || 'an animal'}`,
           date: new Date(vacc.vaccinationDate || vacc.createdAt || vacc.id),
           icon: SyringeIcon
         })
@@ -224,7 +166,7 @@ export default function DashboardHome() {
       .forEach(record => {
         activities.push({
           type: 'feeding',
-          message: `Feeding schedule updated for ${record.animal}`,
+          message: `Feeding schedule updated for ${record.animal?.tagId || 'an animal'}`,
           date: new Date(record.createdAt || record.id),
           icon: UtensilsIcon
         })
@@ -253,22 +195,28 @@ export default function DashboardHome() {
       .slice(0, 3)
 
     setRecentActivity(activities.sort((a, b) => b.date - a.date).slice(0, 3))
+    setError('')
   }
 
   useEffect(() => {
-    calculateStats()
+    let active = true
+    const refreshStats = () => {
+      calculateStats().catch((requestError) => {
+        if (active) setError(requestError.message)
+      })
+    }
+
+    refreshStats()
     
     // Refresh stats when window gains focus (user might have added data in another tab)
-    const handleFocus = () => {
-      calculateStats()
-    }
-    
+    const handleFocus = refreshStats
     window.addEventListener('focus', handleFocus)
     
     // Also refresh periodically (every 30 seconds) to catch changes
-    const interval = setInterval(calculateStats, 30000)
+    const interval = setInterval(refreshStats, 30000)
     
     return () => {
+      active = false
       window.removeEventListener('focus', handleFocus)
       clearInterval(interval)
     }
@@ -298,6 +246,7 @@ export default function DashboardHome() {
       />
       <div className="video-background-content bg-background/80 backdrop-blur-sm p-6 min-h-screen">
         <h1 className="text-2xl font-bold mb-6">Dashboard</h1>
+        {error && <p role="alert" className="mb-4 rounded-md border border-destructive p-3 text-destructive">{error}</p>}
         
         {/* Stats Cards */}
         <div className="dashboard-stats-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">

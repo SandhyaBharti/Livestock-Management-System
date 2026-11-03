@@ -1,6 +1,6 @@
-import { useState } from 'react'
-import { Routes, Route, Link, useNavigate } from 'react-router-dom'
-import { useTheme } from '../components/ThemeProvider'
+import { useEffect, useState } from 'react'
+import { Routes, Route, Navigate, useNavigate } from 'react-router-dom'
+import { useTheme } from '../components/useTheme'
 import Sidebar from '../components/Sidebar'
 import TopNavbar from '../components/TopNavbar'
 import DashboardHome from '../components/DashboardHome'
@@ -8,6 +8,7 @@ import OwnerDetails from '../components/OwnerDetails'
 import AnimalDetails from '../components/AnimalDetails'
 import VaccinationManagement from '../components/VaccinationManagement'
 import FeedingSummary from '../components/FeedingSummary'
+import { clearAuth, getAuthToken } from '../utils/api'
 
 export default function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -19,9 +20,18 @@ export default function Dashboard() {
   }
 
   const handleLogout = () => {
-    // Clear the current user session
-    localStorage.removeItem('livestock_current_user')
+    clearAuth()
     navigate('/')
+  }
+
+  useEffect(() => {
+    const handleUnauthorized = () => navigate('/user-login', { replace: true })
+    window.addEventListener('livestock:unauthorized', handleUnauthorized)
+    return () => window.removeEventListener('livestock:unauthorized', handleUnauthorized)
+  }, [navigate])
+
+  if (!getAuthToken()) {
+    return <Navigate to="/user-login" replace />
   }
 
   return (

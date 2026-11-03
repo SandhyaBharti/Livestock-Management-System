@@ -37,6 +37,29 @@ exports.getMe = asyncHandler(async (req, res) => {
   res.status(200).json({ success: true, data: req.user });
 });
 
+exports.updateMe = asyncHandler(async (req, res, next) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
+  const { name, email } = req.body;
+  const user = await User.findByIdAndUpdate(
+    req.user.id,
+    { name, email },
+    { new: true, runValidators: true }
+  );
+
+  if (!user) {
+    return next(new ErrorResponse('User profile not found', 404));
+  }
+
+  res.status(200).json({
+    success: true,
+    data: { id: user._id, name: user.name, email: user.email, role: user.role }
+  });
+});
+
 const sendTokenResponse = (user, statusCode, res) => {
   const token = user.getSignedJwtToken();
 
@@ -61,4 +84,10 @@ exports.validateRegister = [
 exports.validateLogin = [
   body('email').isEmail().withMessage('Please include a valid email'),
   body('password').exists().withMessage('Password is required')
+];
+
+exports.validateProfile = [
+  body('name').trim().notEmpty().withMessage('Name is required')
+    .isLength({ max: 50 }).withMessage('Name cannot be more than 50 characters'),
+  body('email').isEmail().withMessage('Please include a valid email')
 ];

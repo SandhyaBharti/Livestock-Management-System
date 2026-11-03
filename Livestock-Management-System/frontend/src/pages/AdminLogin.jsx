@@ -1,8 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-
-const ADMIN_EMAIL = 'Shreya@gmail.com'
-const ADMIN_PASSWORD = '12345'
+import { apiRequest, saveAuth } from '../utils/api'
 
 export default function AdminLogin() {
   const [formData, setFormData] = useState({
@@ -21,27 +19,24 @@ export default function AdminLogin() {
     setError('')
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
 
-    if (formData.email !== ADMIN_EMAIL) {
-      setError('Invalid admin email')
-      return
+    try {
+      const { token, data } = await apiRequest('/auth/login', {
+        method: 'POST',
+        body: formData
+      })
+      if (data.role !== 'admin') {
+        setError('This account does not have administrator access.')
+        return
+      }
+      saveAuth(token, data)
+      navigate('/dashboard')
+    } catch (requestError) {
+      setError(requestError.message)
     }
-
-    if (formData.password !== ADMIN_PASSWORD) {
-      setError('Invalid admin password')
-      return
-    }
-
-    // Store admin session
-    localStorage.setItem('livestock_current_user', JSON.stringify({
-      email: ADMIN_EMAIL,
-      role: 'admin',
-      name: 'Admin'
-    }))
-    navigate('/dashboard')
   }
 
   return (
@@ -99,4 +94,3 @@ export default function AdminLogin() {
     </div>
   )
 }
-

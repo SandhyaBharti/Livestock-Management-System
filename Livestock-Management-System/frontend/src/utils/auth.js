@@ -12,6 +12,10 @@ export const getCurrentUser = () => {
   return null
 }
 
+export const saveCurrentUser = (user) => {
+  localStorage.setItem('livestock_current_user', JSON.stringify(user))
+}
+
 export const isAdmin = () => {
   const user = getCurrentUser()
   return user && user.role === 'admin'
@@ -19,7 +23,6 @@ export const isAdmin = () => {
 
 export const getUserId = () => {
   const user = getCurrentUser()
-  return user ? user.id : null
+  return user ? user.id || user._id : null
 }
-
 

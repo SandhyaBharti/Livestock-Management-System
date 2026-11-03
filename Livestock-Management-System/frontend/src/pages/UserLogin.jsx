@@ -1,19 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-
-const USERS_STORAGE_KEY = 'livestock_users'
-
-const getUsers = () => {
-  const saved = localStorage.getItem(USERS_STORAGE_KEY)
-  if (saved) {
-    try {
-      return JSON.parse(saved)
-    } catch (e) {
-      console.error('Error parsing users from localStorage:', e)
-    }
-  }
-  return []
-}
+import { apiRequest, saveAuth } from '../utils/api'
 
 export default function UserLogin() {
   const [formData, setFormData] = useState({
@@ -32,26 +19,20 @@ export default function UserLogin() {
     setError('')
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
 
-    const users = getUsers()
-    const user = users.find(u => u.email === formData.email)
-
-    if (!user) {
-      setError('Email not found. Please sign up first.')
-      return
+    try {
+      const { token, data } = await apiRequest('/auth/login', {
+        method: 'POST',
+        body: formData
+      })
+      saveAuth(token, data)
+      navigate('/dashboard')
+    } catch (requestError) {
+      setError(requestError.message)
     }
-
-    if (user.password !== formData.password) {
-      setError('Invalid password')
-      return
-    }
-
-    // Store current user session
-    localStorage.setItem('livestock_current_user', JSON.stringify(user))
-    navigate('/dashboard')
   }
 
   return (

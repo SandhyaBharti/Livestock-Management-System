@@ -1,10 +1,10 @@
 # Livestock Manager
 
-A comprehensive platform for managing livestock farms built with the MERN stack (MongoDB, Express.js, React, Node.js) and ShadCN UI components.
+A livestock management platform built with MongoDB, Express, React, and Node.js.
 
 ## Features
 
-- **Authentication System**: JWT-based authentication with role-based access control (Admin/User)
+- **Authentication System**: MongoDB-backed accounts, hashed passwords, JWT authentication, and role-based access control
 - **Dashboard**: Card-based dashboard with analytics and recent activity
 - **Owner Management**: Add, view, edit, and delete livestock owners
 - **Animal Tracking**: Manage animal details including species, breed, and age
@@ -41,44 +41,34 @@ A comprehensive platform for managing livestock farms built with the MERN stack 
 
 ## Installation
 
-1. Clone the repository:
+1. Install the project dependencies from the repository root:
 ```bash
 git clone <repository-url>
-cd livestock_manager
-```
-
-2. Install backend dependencies:
-```bash
-cd backend
+cd Livestock-Management-System
 npm install
 ```
 
-3. Install frontend dependencies:
-```bash
-cd ../frontend
-npm install
-```
-
-4. Create a `.env` file in the backend directory from the example:
-```bash
-cd ../backend
-cp .env.example .env
-```
-The file should contain:
+2. Create `backend/.env` from `backend/.env.example` and set your MongoDB connection:
 ```env
 PORT=5000
 MONGO_URI=mongodb://127.0.0.1:27017/livestock
 JWT_SECRET=replace-this-with-a-long-random-secret
 JWT_EXPIRE=30d
 ```
-The same values are provided in `backend/.env.example`. Start MongoDB before launching the API.
+For a local database, start the MongoDB service before running the application. For MongoDB Atlas, use the Atlas connection string for `MONGO_URI` instead.
 
-5. Seed the database with an administrator and demo livestock records:
+3. Optionally add an administrator and demonstration records:
 ```bash
-npm run seed
+npm run seed --prefix backend
 ```
-Demo administrator login: `admin@livestock.com` / `Admin@123`.
-New registrations are regular users; each user can manage only their own records, while administrators can manage all records.
+Demo administrator login: `admin@livestock.com` / `Admin@123`. New signups create regular user accounts. Each user can manage their own records; administrators can manage all records.
+
+On Windows PowerShell, copy the example file with:
+```powershell
+Copy-Item backend\.env.example backend\.env
+```
+
+If the frontend and API are deployed on separate hosts, set `VITE_API_URL` in the frontend build environment to the API base URL, such as `https://your-api-host/api/v1`.
 
 ## Running the Application
 
@@ -89,7 +79,7 @@ From the root directory:
 npm run dev
 ```
 
-This will start both the backend and frontend servers concurrently.
+This starts the API on `http://localhost:5000` and the Vite frontend on `http://localhost:5173`. The frontend proxies `/api` requests to the local backend during development.
 
 Alternatively, you can start them separately:
 
@@ -120,28 +110,43 @@ npm start
 ## Project Structure
 
 ```
-livestock_manager/
+Livestock-Management-System/
 ├── backend/
+│   ├── config/db.js
 │   ├── controllers/
 │   ├── middleware/
-│   ├── models/
+│   ├── models/          # MongoDB/Mongoose schemas
 │   ├── routes/
-│   ├── utils/
-│   ├── config/
 │   ├── server.js
-│   └── .env
+│   └── .env             # Local connection settings; do not commit
 ├── frontend/
-│   ├── public/
 │   ├── src/
-│   │   ├── components/
-│   │   ├── pages/
-│   │   ├── App.jsx
-│   │   └── main.jsx
-│   ├── tailwind.config.js
 │   └── vite.config.js
 ├── package.json
 └── README.md
 ```
+
+## Where MongoDB data is stored
+
+The database is **not stored inside this project folder**. `backend/config/db.js` connects Mongoose to the URI in `backend/.env` (`MONGO_URI`). The default URI points to a database named `livestock` on the local MongoDB server:
+
+```text
+mongodb://127.0.0.1:27017/livestock
+```
+
+MongoDB stores its files in the server's configured data directory (`storage.dbPath`), not in the React or backend source folders. The exact local path depends on how MongoDB was installed or started. To ask the running local MongoDB server for the configured path, run:
+
+```powershell
+mongosh --eval "db.adminCommand({ getCmdLineOpts: 1 }).parsed.storage.dbPath"
+```
+
+The MongoDB server used for this local setup reports `C:\Program Files\MongoDB\Server\8.2\data`. MongoDB manages the underlying files there; it does not necessarily create a human-readable `livestock` subfolder.
+
+With MongoDB Atlas, the records are stored in the selected cloud cluster instead. The backend's `models/` folder contains schema definitions for the MongoDB `users`, `owners`, `animals`, `vaccinations`, and `nutrition` collections; it does not contain the database files. The frontend stores only the login token/profile cache and theme preference in browser storage; account and livestock records are sent to the protected API and saved in MongoDB.
+
+The API is configured in `backend/config/db.js`; set `MONGO_URI` and a private `JWT_SECRET` in `backend/.env`. Do not commit `.env` or database files.
+
+Existing records saved by the old frontend in browser storage are not automatically copied to MongoDB. Re-enter those records in the app or import them separately before removing the old browser data.
 
 ## API Endpoints
 
@@ -149,6 +154,7 @@ livestock_manager/
 - `POST /api/v1/auth/register` - Register a new user
 - `POST /api/v1/auth/login` - Login user
 - `GET /api/v1/auth/me` - Get current user
+- `PUT /api/v1/auth/me` - Update the signed-in user's name and email
 
 ### Owners
 - `GET /api/v1/owners` - Get all owners
