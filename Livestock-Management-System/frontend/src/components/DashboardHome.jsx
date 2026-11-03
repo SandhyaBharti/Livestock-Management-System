@@ -300,7 +300,7 @@ export default function DashboardHome() {
         <h1 className="text-2xl font-bold mb-6">Dashboard</h1>
         
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="dashboard-stats-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {stats.map((stat, index) => (
             <div key={index} className="bg-card p-6 rounded-lg border border-border shadow-sm">
               <div className="flex items-center">
@@ -318,7 +318,7 @@ export default function DashboardHome() {
         </div>
         
         {/* Charts */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <div className="dashboard-chart-grid grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
           {/* Vaccination Chart */}
           <div className="bg-card p-6 rounded-lg border border-border shadow-sm">
             <div className="flex items-center justify-between mb-4">

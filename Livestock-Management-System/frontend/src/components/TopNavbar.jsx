@@ -33,17 +33,20 @@ export default function TopNavbar({ sidebarOpen, setSidebarOpen, toggleTheme, th
   }
 
   return (
-    <header className="bg-card border-b border-border">
-      <div className="flex items-center justify-between h-16 px-4">
+    <header className="dashboard-navbar bg-card border-b border-border">
+      <div className="dashboard-navbar-row flex items-center justify-between h-16 px-4">
         <div className="flex items-center">
           <button
-            className="md:hidden mr-2"
+            type="button"
+            className="navbar-menu-button mr-2"
             onClick={() => setSidebarOpen(!sidebarOpen)}
+            aria-label={sidebarOpen ? 'Close navigation menu' : 'Open navigation menu'}
+            aria-expanded={sidebarOpen}
           >
-            <MenuIcon className="h-6 w-6" />
+            {sidebarOpen ? <XIcon className="h-6 w-6" /> : <MenuIcon className="h-6 w-6" />}
           </button>
           
-          <form onSubmit={handleSearch} className="relative hidden md:block">
+          <form onSubmit={handleSearch} className="navbar-desktop-search relative">
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <SearchIcon className="h-5 w-5 text-muted-foreground" />
@@ -93,7 +96,9 @@ export default function TopNavbar({ sidebarOpen, setSidebarOpen, toggleTheme, th
         
         <div className="flex items-center">
           <button
+            type="button"
             onClick={toggleTheme}
+            aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}
             className="p-2 rounded-md text-foreground hover:bg-muted"
           >
             {theme === 'dark' ? (
@@ -103,7 +108,7 @@ export default function TopNavbar({ sidebarOpen, setSidebarOpen, toggleTheme, th
             )}
           </button>
           
-          <div className="ml-4 relative">
+          <div className="navbar-avatar ml-4 relative" aria-label="Current user">
             <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center">
               <span className="text-primary-foreground font-medium">U</span>
             </div>
@@ -112,7 +117,7 @@ export default function TopNavbar({ sidebarOpen, setSidebarOpen, toggleTheme, th
       </div>
       
       {/* Mobile search bar */}
-      <div className="px-4 pb-4 md:hidden">
+      <div className="navbar-mobile-search px-4 pb-4">
         <form onSubmit={handleSearch}>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">

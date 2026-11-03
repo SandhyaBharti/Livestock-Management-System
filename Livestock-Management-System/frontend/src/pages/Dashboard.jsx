@@ -25,7 +25,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="flex h-screen bg-background text-foreground">
+    <div className="dashboard-shell flex h-screen bg-background text-foreground">
       <Sidebar 
         sidebarOpen={sidebarOpen} 
         setSidebarOpen={setSidebarOpen} 
@@ -40,7 +40,7 @@ export default function Dashboard() {
           theme={theme}
         />
         
-        <main className="flex-1 overflow-y-auto p-4 md:p-6 bg-background">
+        <main className="dashboard-main flex-1 overflow-y-auto p-4 md:p-6 bg-background">
           <Routes>
             <Route path="/" element={<DashboardHome />} />
             <Route path="/owners" element={<OwnerDetails />} />
